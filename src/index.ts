@@ -89,10 +89,27 @@ export function parseApplyTo(raw: string): string[] {
 }
 
 function matchesGlob(filePath: string, glob: string): boolean {
-  return minimatch(filePath, glob, { matchBase: false, dot: true })
+  if (minimatch(filePath, glob, { matchBase: false, dot: true })) return true
+  // Also try with trailing slash for directory paths (e.g. "apps/joblab" vs "apps/joblab/**")
+  if (!filePath.endsWith("/") && minimatch(filePath + "/", glob, { matchBase: false, dot: true })) return true
+  return false
 }
 
 async function loadRules(directory: string): Promise<InstructionRule[]> {
+  const rules: InstructionRule[] = []
+
+  // Load .github/copilot-instructions.md as an always-active rule if it exists
+  const copilotInstructionsPath = join(directory, ".github", "copilot-instructions.md")
+  try {
+    const raw = await readFile(copilotInstructionsPath, "utf8")
+    const content = raw.replace(FRONTMATTER_RE, "").trim()
+    rules.push({ globs: null, content, path: "copilot-instructions.md" })
+    log(`Loaded: copilot-instructions.md (always)`)
+  } catch {
+    // File doesn't exist, skip silently
+  }
+
+  // Load .github/instructions/*.md files
   const instructionsDir = join(directory, ".github", "instructions")
   let files: string[]
 
@@ -100,10 +117,8 @@ async function loadRules(directory: string): Promise<InstructionRule[]> {
     files = await readdir(instructionsDir)
   } catch {
     log("No .github/instructions/ directory found, skipping")
-    return []
+    return rules
   }
-
-  const rules: InstructionRule[] = []
 
   for (const file of files) {
     if (!file.endsWith(".md")) continue
@@ -129,7 +144,6 @@ async function loadRules(directory: string): Promise<InstructionRule[]> {
 
 export const CopilotInstructionsPlugin: Plugin = async ({
   directory,
-  client,
 }: PluginInput) => {
   const rules = await loadRules(directory)
 
@@ -271,18 +285,66 @@ export const CopilotInstructionsPlugin: Plugin = async ({
       const { tool: toolName, sessionID } = input
       if (!sessionID) return
 
-      if (!["read", "edit", "write", "glob", "grep"].includes(toolName)) return
+      if (!["read", "edit", "write", "glob", "grep", "bash"].includes(toolName)) return
 
       const args = (output as { args?: Record<string, unknown> }).args
-      const filePath = (args?.filePath ?? args?.path) as string | undefined
-      if (typeof filePath !== "string" || !filePath) return
-
-      const rel = relative(directory, filePath)
       const state = getSession(sessionID)
-      if (!state.contextPaths.has(rel)) {
-        state.contextPaths.add(rel)
-        log(`New context path: ${rel} (session ${sessionID.slice(0, 8)})`)
+
+      const addPath = (p: string) => {
+        const rel = relative(directory, p.startsWith("/") ? p : join(directory, p))
+        if (!rel.startsWith("..") && !state.contextPaths.has(rel)) {
+          state.contextPaths.add(rel)
+          log(`New context path: ${rel} (session ${sessionID.slice(0, 8)})`)
+        }
       }
+
+      if (toolName === "bash") {
+        // Extract workdir arg
+        const workdir = args?.workdir
+        if (typeof workdir === "string" && workdir) addPath(workdir)
+
+        // Extract paths from command string (e.g. "cd apps/joblab && rails test test/controllers")
+        // Also resolve relative paths against workdir or any cd target in the command
+        const command = args?.command
+        if (typeof command === "string") {
+          // Find cd target in command (e.g. "cd apps/joblab")
+          const cdMatch = command.match(/(?:^|&&|\s)cd\s+([^\s&|;]+)/)
+          const cdTarget = cdMatch?.[1] ?? null
+          const effectiveWorkdir = (typeof workdir === "string" && workdir) ? workdir : cdTarget
+
+          for (const found of extractPathsFromText(command)) {
+            addPath(found)
+            // Also try resolving relative path against the effective workdir
+            if (effectiveWorkdir && !found.startsWith("/") && !found.startsWith(".")) {
+              addPath(join(effectiveWorkdir, found))
+            }
+          }
+        }
+      } else {
+        const filePath = (args?.filePath ?? args?.path) as string | undefined
+        if (typeof filePath === "string" && filePath) addPath(filePath)
+      }
+    },
+
+    "tool.execute.after": async (input, output) => {
+      const { tool: toolName, sessionID } = input
+      if (!sessionID) return
+      if (toolName !== "bash") return
+
+      // Extract paths from bash output (e.g. find results)
+      const text = output.output
+      if (typeof text !== "string" || !text) return
+
+      const state = getSession(sessionID)
+      const addPath = (p: string) => {
+        const rel = relative(directory, p.startsWith("/") ? p : join(directory, p))
+        if (!rel.startsWith("..") && rel !== "" && rel !== "." && !state.contextPaths.has(rel)) {
+          state.contextPaths.add(rel)
+          log(`New context path from bash output: ${rel} (session ${sessionID.slice(0, 8)})`)
+        }
+      }
+
+      for (const found of extractPathsFromText(text)) addPath(found)
     },
 
     "experimental.chat.system.transform": async (input, output) => {
@@ -313,7 +375,6 @@ export const CopilotInstructionsPlugin: Plugin = async ({
 
       if (toInject.length > 0) {
         const injectedRules = rules.filter((r) => toInject.includes(r.content))
-        const names = injectedRules.map((r) => r.path.replace(".instructions.md", ""))
 
         const alwaysContent = injectedRules
           .filter((r) => r.globs === null)
@@ -330,19 +391,6 @@ export const CopilotInstructionsPlugin: Plugin = async ({
 
         // Mark injected for this turn — reset by chat.message on next user turn
         state.rulesInjected = true
-
-        try {
-          await (client as any).tui.showToast({
-            body: {
-              title: "📖 Copilot Instructions",
-              message: `Loaded: ${names.join(", ")}`,
-              variant: "info",
-              duration: 3000,
-            },
-          })
-        } catch {
-          // tui not available in non-interactive mode
-        }
       }
     },
 

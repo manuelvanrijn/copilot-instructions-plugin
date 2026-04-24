@@ -2,20 +2,21 @@
 
 ## Unreleased
 
-
-## v0.1.2 — 2026-04-24
-
 ### Added
-- `chat.message` hook that extracts file paths from user message text via regex, enabling same-turn injection when a user mentions a file path without the agent needing to call a tool first.
-- Regex path extractor (`extractPathsFromText`) that picks up paths like `apps/joblab/app/controllers/foo.rb` directly from message text, excluding URLs and bare words.
-- `experimental.chat.messages.transform` hook that seeds `contextPaths` from full message history (both tool call args and text parts) before every LLM call.
+- `.github/copilot-instructions.md` is now always loaded if present — this is the repository-level instructions file used by GitHub Copilot.
+- `tool.execute.after` hook that scans bash output for file paths (e.g. `find` results), enabling rules to match on paths discovered via shell commands.
+- Bash command path resolution: relative paths in bash commands (e.g. `rails test test/controllers`) are now resolved against the `cd` target or `workdir`, so `apps/joblab/test/controllers` is correctly derived and matched against `apps/joblab/test/**` globs.
+- Directory paths without trailing slash (e.g. `apps/joblab`) now match `apps/joblab/**` globs by trying with a trailing slash appended.
 
 ### Changed
-- Replaced permanent session-level `injectedRules` deduplication with a per-turn `rulesInjected` guard. Rules are now re-evaluated every turn, so newly matched paths trigger injection immediately rather than being skipped because a rule was "already seen" this session.
-- `experimental.chat.messages.transform` seeds paths from text parts in message history, not just tool call args.
-- `tool.execute.before` now also captures `glob` and `grep` tool paths, not just `read/edit/write`.
-- After compaction, both `rulesInjected` and `seededFromHistory` are reset so rules and history re-evaluate from scratch.
-- `list_injected_copilot_instructions` output simplified: shows active (matching) vs pending (no match yet) based on current `contextPaths`.
+- `chat.message` hook now also extracts file paths from user message text via regex, enabling same-turn injection when a file path is mentioned without the agent calling a tool.
+- `tool.execute.before` now also captures `glob`, `grep`, and `bash` tool paths in addition to `read/edit/write`.
+- `experimental.chat.messages.transform` now seeds paths from both tool call args and text parts in message history.
+- After compaction, `seededFromHistory` is reset so history re-seeds from the compacted summary.
+
+### Removed
+- TUI toast notifications removed. They were showing stale or incomplete information due to hook timing — the `list_injected_copilot_instructions` tool is the reliable way to inspect injection status.
+- `client` dependency removed from plugin input since it was only used for toast notifications.
 
 
 ## v0.1.1 — 2026-04-24
