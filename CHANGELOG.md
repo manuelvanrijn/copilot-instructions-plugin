@@ -5,6 +5,7 @@
 ### Added
 - `.github/copilot-instructions.md` is now always loaded if present — this is the repository-level instructions file used by GitHub Copilot.
 - `tool.execute.after` hook that scans bash output for file paths (e.g. `find` results), enabling rules to match on paths discovered via shell commands.
+- `tool.execute.after` now also scans `glob` and `grep` output for file paths, enabling rules to match on files discovered by search tools.
 - Bash command path resolution: relative paths in bash commands (e.g. `rails test test/controllers`) are now resolved against the `cd` target or `workdir`, so `apps/joblab/test/controllers` is correctly derived and matched against `apps/joblab/test/**` globs.
 - Directory paths without trailing slash (e.g. `apps/joblab`) now match `apps/joblab/**` globs by trying with a trailing slash appended.
 

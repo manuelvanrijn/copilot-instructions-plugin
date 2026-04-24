@@ -101,6 +101,28 @@ function addContextPath(
   log(`${source}: ${rel} (session ${sessionID.slice(0, 8)})`)
 }
 
+function collectText(value: unknown, texts: string[]): void {
+  if (typeof value === "string") {
+    texts.push(value)
+    return
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectText(item, texts)
+    return
+  }
+
+  if (value && typeof value === "object") {
+    for (const item of Object.values(value as Record<string, unknown>)) collectText(item, texts)
+  }
+}
+
+function extractToolOutputText(output: unknown): string {
+  const texts: string[] = []
+  collectText(output, texts)
+  return texts.join("\n")
+}
+
 /**
  * Parse `applyTo:` from YAML frontmatter.
  * Supports comma-separated glob lists.
@@ -352,15 +374,15 @@ export const CopilotInstructionsPlugin: Plugin = async ({
     "tool.execute.after": async (input, output) => {
       const { tool: toolName, sessionID } = input
       if (!sessionID) return
-      if (toolName !== "bash") return
+      if (!["bash", "glob", "grep"].includes(toolName)) return
 
-      // Extract paths from bash output (e.g. find results)
-      const text = output.output
-      if (typeof text !== "string" || !text) return
+      // Extract paths from tool output (e.g. find/glob/grep results)
+      const text = extractToolOutputText(output)
+      if (!text) return
 
       const state = getSession(sessionID)
       const addPath = (p: string) =>
-        addContextPath(directory, state, sessionID, p, "New context path from bash output")
+        addContextPath(directory, state, sessionID, p, `New context path from ${toolName} output`)
 
       for (const found of extractPathsFromText(text)) addPath(found)
     },

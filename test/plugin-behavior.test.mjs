@@ -170,3 +170,36 @@ test("loads instruction files in filename order", async () => {
   assert.equal(output.system.length, 1)
   assert.ok(output.system[0].indexOf("First instruction.") < output.system[0].indexOf("Last instruction."))
 })
+
+test("captures glob and grep result paths after tool execution", async () => {
+  const { plugin } = await createPlugin({
+    ".github/instructions/typescript.md": `---
+applyTo: "src/**/*.ts"
+---
+# TypeScript
+
+Use strict types.`,
+  })
+
+  await plugin["tool.execute.after"](
+    { tool: "glob", sessionID: "session-8" },
+    { output: ["src/index.ts"] }
+  )
+
+  const globOutput = { system: [] }
+  await plugin["experimental.chat.system.transform"]({ sessionID: "session-8" }, globOutput)
+
+  assert.equal(globOutput.system.length, 1)
+  assert.match(globOutput.system[0], /Use strict types\./)
+
+  await plugin["tool.execute.after"](
+    { tool: "grep", sessionID: "session-9" },
+    { output: "src/controller.ts:1:const controller = true" }
+  )
+
+  const grepOutput = { system: [] }
+  await plugin["experimental.chat.system.transform"]({ sessionID: "session-9" }, grepOutput)
+
+  assert.equal(grepOutput.system.length, 1)
+  assert.match(grepOutput.system[0], /Use strict types\./)
+})
