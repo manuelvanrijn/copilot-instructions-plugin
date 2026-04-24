@@ -152,7 +152,7 @@ async function loadRules(directory: string): Promise<InstructionRule[]> {
   let files: string[]
 
   try {
-    files = await readdir(instructionsDir)
+    files = (await readdir(instructionsDir)).sort()
   } catch {
     log("No .github/instructions/ directory found, skipping")
     return rules

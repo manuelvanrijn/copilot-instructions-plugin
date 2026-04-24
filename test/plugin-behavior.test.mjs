@@ -157,3 +157,16 @@ Do not inject globally.`,
 
   assert.equal(output.system.length, 0)
 })
+
+test("loads instruction files in filename order", async () => {
+  const { plugin } = await createPlugin({
+    ".github/instructions/z-last.md": "# Z\n\nLast instruction.",
+    ".github/instructions/a-first.md": "# A\n\nFirst instruction.",
+  })
+
+  const output = { system: [] }
+  await plugin["experimental.chat.system.transform"]({ sessionID: "session-7" }, output)
+
+  assert.equal(output.system.length, 1)
+  assert.ok(output.system[0].indexOf("First instruction.") < output.system[0].indexOf("Last instruction."))
+})
