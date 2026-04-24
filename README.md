@@ -78,15 +78,21 @@ Output shows which files are injected, which are pending, and which file paths h
 
 Publishing to npm is fully automated via `.github/workflows/publish.yml`, triggered by pushing a `v*.*.*` tag.
 
-From a clean `main`:
+Use the release script from a clean `main`:
 
 ```bash
 git switch main && git pull
-npm version patch   # or: minor | major
-git push --follow-tags
+./scripts/release.sh patch   # or: minor | major
 ```
 
-`npm version` bumps `package.json` + `package-lock.json`, creates a commit and annotated tag `vX.Y.Z`. The tag push triggers the workflow, which:
+The script:
+
+1. Verifies the working tree is clean.
+2. Bumps the version in `package.json` (`npm version --no-git-tag-version`).
+3. Updates `CHANGELOG.md`: renames `## Unreleased` to `## vX.Y.Z — YYYY-MM-DD` and adds a fresh `## Unreleased` section at the top.
+4. Commits (`chore: release vX.Y.Z`), creates tag `vX.Y.Z`, and pushes both to `origin/main`.
+
+The tag push then triggers the GitHub Actions workflow, which:
 
 1. Verifies the tag matches `package.json` version.
 2. Creates a GitHub Release with auto-generated notes.
