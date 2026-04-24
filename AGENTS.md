@@ -29,7 +29,7 @@ Use Conventional Commits:
 
 Keep messages short and imperative. No ticket numbers needed.
 
-**Do not push to remote.** Commit locally and let the user push.
+**Do not push to remote directly.** The only exception is running `./scripts/release.sh` — that script pushes as part of the release flow and that is allowed.
 
 ## Releasing
 
