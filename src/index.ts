@@ -359,7 +359,7 @@ export const CopilotInstructionsPlugin: Plugin = async ({
       // Per-turn guard: skip if already injected this turn
       if (state.rulesInjected) return
 
-      const toInject: string[] = []
+      const matchedRules: InstructionRule[] = []
 
       for (const rule of rules) {
         const matches =
@@ -371,18 +371,16 @@ export const CopilotInstructionsPlugin: Plugin = async ({
               )
 
         if (matches) {
-          toInject.push(rule.content)
+          matchedRules.push(rule)
           log(`Injected: ${rule.path} into session ${sessionID.slice(0, 8)}`)
         }
       }
 
-      if (toInject.length > 0) {
-        const injectedRules = rules.filter((r) => toInject.includes(r.content))
-
-        const alwaysContent = injectedRules
+      if (matchedRules.length > 0) {
+        const alwaysContent = matchedRules
           .filter((r) => r.globs === null)
           .map((r) => r.content)
-        const conditionalContent = injectedRules
+        const conditionalContent = matchedRules
           .filter((r) => r.globs !== null)
           .map((r) => r.content)
 
@@ -396,9 +394,7 @@ export const CopilotInstructionsPlugin: Plugin = async ({
         state.rulesInjected = true
 
         // Toast only when conditional rules grow — always-rules don't count
-        const currentMatchCount = toInject.filter((c) =>
-          rules.some((r) => r.content === c && r.globs !== null)
-        ).length
+        const currentMatchCount = matchedRules.filter((r) => r.globs !== null).length
         if (currentMatchCount > state.lastMatchCount) {
           const added = currentMatchCount - state.lastMatchCount
           state.lastMatchCount = currentMatchCount

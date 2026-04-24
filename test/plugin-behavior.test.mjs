@@ -75,3 +75,22 @@ Use Ruby style.`,
   assert.match(output.system[0], /type="always"/)
   assert.doesNotMatch(output.system[0], /Use Ruby style\./)
 })
+
+test("does not activate an unmatched conditional rule with duplicate content", async () => {
+  const shared = "# Shared\n\nSame instructions."
+  const { plugin, toasts } = await createPlugin({
+    ".github/instructions/always.md": shared,
+    ".github/instructions/conditional.md": `---
+applyTo: "src/**/*.ts"
+---
+${shared}`,
+  })
+
+  const output = { system: [] }
+  await plugin["experimental.chat.system.transform"]({ sessionID: "session-3" }, output)
+
+  assert.equal(output.system.length, 1)
+  assert.match(output.system[0], /type="always"/)
+  assert.doesNotMatch(output.system[0], /type="conditional"/)
+  assert.equal(toasts.length, 0)
+})

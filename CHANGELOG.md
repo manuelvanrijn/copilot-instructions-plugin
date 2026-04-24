@@ -15,6 +15,9 @@
 - After compaction, `seededFromHistory` is reset so history re-seeds from the compacted summary.
 - TUI toast notifications now appear only when the number of active conditional instruction files increases, avoiding repeated stale notifications.
 
+### Fixed
+- Conditional instruction files with the same content as an always-active file no longer activate unless their `applyTo` glob actually matches.
+
 
 ## v0.1.1 — 2026-04-24
 
