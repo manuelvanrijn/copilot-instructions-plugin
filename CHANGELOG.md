@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+
+## v0.1.2 — 2026-04-24
+
 ### Added
 - `chat.message` hook that extracts file paths from user message text via regex, enabling same-turn injection when a user mentions a file path without the agent needing to call a tool first.
 - Regex path extractor (`extractPathsFromText`) that picks up paths like `apps/joblab/app/controllers/foo.rb` directly from message text, excluding URLs and bare words.
