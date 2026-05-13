@@ -19,6 +19,8 @@
     "opencode",
     "factory-droid",
     "droid",
+    "claude",
+    "claude-code",
     "plugin",
     "marketplace",
     "copilot",
@@ -26,8 +28,7 @@
     "system-prompt",
     "github-copilot",
     "applyTo",
-    "ai-agent",
-    "claude"
+    "ai-agent"
   ],
   "author": "Manuel van Rijn <manuel@manuelvanrijn.nl>",
   "license": "MIT",

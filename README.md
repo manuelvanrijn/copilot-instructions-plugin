@@ -29,6 +29,26 @@ Or add it to your `opencode.json`:
 }
 ```
 
+### Claude Code
+
+This plugin can also be used with [Claude Code](https://code.claude.com/). The repository includes a `.claude-plugin/` manifest for compatibility.
+
+**Local development:**
+
+```bash
+claude --plugin-dir /path/to/this/repo
+```
+
+**Install from GitHub:**
+
+```bash
+claude --plugin-url https://github.com/manuelvanrijn/copilot-instructions-plugin
+```
+
+Then run `/reload-plugins` to activate.
+
+Note: Claude Code uses a different hooks system than Factory Droid. The core instruction-loading logic is shared, but hook timing and event names may differ between platforms.
+
 ### Factory Droid
 
 This plugin is available from the [Factory Droid marketplace](https://docs.factory.ai/cli/configuration/plugins#marketplaces) via this repository.

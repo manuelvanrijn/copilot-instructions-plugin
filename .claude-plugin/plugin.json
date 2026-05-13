@@ -1,0 +1,12 @@
+{
+  "name": "copilot-instructions-plugin",
+  "description": "Loads .github/instructions/ files into Claude Code context with applyTo: support — like GitHub Copilot custom instructions",
+  "version": "0.1.2",
+  "author": {
+    "name": "Manuel van Rijn",
+    "email": "manuel@manuelvanrijn.nl"
+  },
+  "homepage": "https://github.com/manuelvanrijn/copilot-instructions-plugin",
+  "repository": "https://github.com/manuelvanrijn/copilot-instructions-plugin",
+  "license": "MIT"
+}
