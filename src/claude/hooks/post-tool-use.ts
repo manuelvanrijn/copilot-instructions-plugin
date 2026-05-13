@@ -11,9 +11,14 @@ import { readStdin } from "./_stdin.js"
 async function main() {
   const input = JSON.parse(await readStdin())
   const sessionID = input.session_id as string
-  const projectDir = input.project_dir as string
-  const toolName = (input.tool?.name as string)?.toLowerCase() ?? ""
-  const toolOutput = input.tool?.output
+  const projectDir = (input.project_dir ?? input.cwd) as string
+  const toolName = (input.tool_name ?? input.tool?.name as string)?.toLowerCase() ?? ""
+  const toolOutput = input.tool_output ?? input.tool?.output
+
+  if (!projectDir) {
+    console.error("ERROR: project_dir or cwd is missing from hook input")
+    process.exit(1)
+  }
 
   const cacheDir = getCacheDir(projectDir)
   const persisted = await loadState(cacheDir, sessionID)
