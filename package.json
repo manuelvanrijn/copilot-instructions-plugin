@@ -1,5 +1,5 @@
 {
-  "name": "@manuelvanrijn/opencode-copilot-instructions",
+  "name": "@manuelvanrijn/copilot-instructions-plugin",
   "version": "0.1.2",
   "description": "OpenCode plugin that loads .github/instructions/ files with applyTo: frontmatter into the system prompt — like GitHub Copilot instructions",
   "main": "dist/src/index.js",
@@ -28,10 +28,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/manuelvanrijn/opencode-copilot-instructions.git"
+    "url": "git+https://github.com/manuelvanrijn/copilot-instructions-plugin.git"
   },
   "bugs": {
-    "url": "https://github.com/manuelvanrijn/opencode-copilot-instructions/issues"
+    "url": "https://github.com/manuelvanrijn/copilot-instructions-plugin/issues"
   },
   "files": [
     "dist",

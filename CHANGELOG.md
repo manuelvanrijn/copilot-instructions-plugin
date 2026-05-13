@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- Package and repository renamed from `@manuelvanrijn/opencode-copilot-instructions` to `@manuelvanrijn/copilot-instructions-plugin`. The old npm package is deprecated; migrate to the new name.
+
 ### Added
 - `.github/copilot-instructions.md` is now always loaded if present — this is the repository-level instructions file used by GitHub Copilot.
 - `tool.execute.after` hook that scans bash output for file paths (e.g. `find` results), enabling rules to match on paths discovered via shell commands.

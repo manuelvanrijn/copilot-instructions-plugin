@@ -7,7 +7,7 @@ import { tmpdir } from "node:os"
 import { CopilotInstructionsPlugin } from "../dist/src/index.js"
 
 async function createPlugin(files) {
-  const directory = await mkdtemp(join(tmpdir(), "opencode-copilot-instructions-"))
+  const directory = await mkdtemp(join(tmpdir(), "copilot-instructions-plugin-"))
 
   for (const [path, content] of Object.entries(files)) {
     const fullPath = join(directory, path)

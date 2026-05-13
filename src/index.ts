@@ -1,5 +1,5 @@
 /**
- * @manuelvanrijn/opencode-copilot-instructions
+ * @manuelvanrijn/copilot-instructions-plugin
  *
  * OpenCode plugin that reads .github/instructions/*.md files with `applyTo:`
  * frontmatter and injects matching instructions into the system prompt when
@@ -265,6 +265,6 @@ export const CopilotInstructionsPlugin: Plugin = async ({
   }
 }
 
-const id = "opencode-copilot-instructions" as const
+const id = "copilot-instructions-plugin" as const
 const server = CopilotInstructionsPlugin satisfies Plugin
 export default { id, server }

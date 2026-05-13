@@ -1,6 +1,6 @@
-# @manuelvanrijn/opencode-copilot-instructions
+# @manuelvanrijn/copilot-instructions-plugin
 
-[![npm version](https://img.shields.io/npm/v/@manuelvanrijn/opencode-copilot-instructions)](https://www.npmjs.com/package/@manuelvanrijn/opencode-copilot-instructions)
+[![npm version](https://img.shields.io/npm/v/@manuelvanrijn/copilot-instructions-plugin)](https://www.npmjs.com/package/@manuelvanrijn/copilot-instructions-plugin)
 
 An [OpenCode](https://opencode.ai) plugin that loads `.github/instructions/` files into the AI agent's system prompt — following the same `applyTo:` convention as [GitHub Copilot custom instructions](https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot).
 
@@ -15,7 +15,7 @@ This means you can keep your existing `.github/copilot-instructions.md` and `.gi
 ## Installation
 
 ```bash
-opencode plugin @manuelvanrijn/opencode-copilot-instructions@0.1.2 --global
+opencode plugin @manuelvanrijn/copilot-instructions-plugin@0.1.2 --global
 ```
 
 Or add it to your `opencode.json`:
@@ -23,7 +23,7 @@ Or add it to your `opencode.json`:
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["@manuelvanrijn/opencode-copilot-instructions@0.1.2"]
+  "plugin": ["@manuelvanrijn/copilot-instructions-plugin@0.1.2"]
 }
 ```
 
