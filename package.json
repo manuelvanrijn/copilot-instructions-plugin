@@ -1,7 +1,7 @@
 {
-  "name": "@manuelvanrijn/opencode-copilot-instructions",
+  "name": "@manuelvanrijn/copilot-instructions-plugin",
   "version": "0.1.2",
-  "description": "OpenCode plugin that loads .github/instructions/ files with applyTo: frontmatter into the system prompt — like GitHub Copilot instructions",
+  "description": "OpenCode / Factory Droid plugin that loads .github/instructions/ files with applyTo: frontmatter into the system prompt — like GitHub Copilot instructions",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "type": "module",
@@ -17,21 +17,26 @@
   },
   "keywords": [
     "opencode",
+    "factory-droid",
+    "droid",
     "plugin",
+    "marketplace",
     "copilot",
     "instructions",
     "system-prompt",
     "github-copilot",
-    "applyTo"
+    "applyTo",
+    "ai-agent",
+    "claude"
   ],
   "author": "Manuel van Rijn <manuel@manuelvanrijn.nl>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/manuelvanrijn/opencode-copilot-instructions.git"
+    "url": "git+https://github.com/manuelvanrijn/copilot-instructions-plugin.git"
   },
   "bugs": {
-    "url": "https://github.com/manuelvanrijn/opencode-copilot-instructions/issues"
+    "url": "https://github.com/manuelvanrijn/copilot-instructions-plugin/issues"
   },
   "files": [
     "dist",

@@ -15,6 +15,7 @@
 - Directory paths without trailing slash (e.g. `apps/joblab`) now match `apps/joblab/**` globs by trying with a trailing slash appended.
 
 ### Changed
+- Package and repository renamed from `@manuelvanrijn/opencode-copilot-instructions` to `@manuelvanrijn/copilot-instructions-plugin` to reflect dual-platform (OpenCode + Factory Droid) support. The old npm package is deprecated; migrate to the new name.
 - `chat.message` hook now also extracts file paths from user message text via regex, enabling same-turn injection when a file path is mentioned without the agent calling a tool.
 - `tool.execute.before` now also captures `glob`, `grep`, and `bash` tool paths in addition to `read/edit/write`.
 - `experimental.chat.messages.transform` now seeds paths from both tool call args and text parts in message history.

@@ -58,7 +58,7 @@ awk '
 rm "$TMP"
 
 # Update version references in README.md
-sed -i '' "s/@manuelvanrijn\/opencode-copilot-instructions@${CURRENT}/@manuelvanrijn\/opencode-copilot-instructions@${NEW}/g" README.md
+sed -i '' "s/@manuelvanrijn\/copilot-instructions-plugin@${CURRENT}/@manuelvanrijn\/copilot-instructions-plugin@${NEW}/g" README.md
 
 # Commit, tag, push
 git add package.json "$CHANGELOG" README.md

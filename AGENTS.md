@@ -2,7 +2,7 @@
 
 ## What this repo is
 
-An OpenCode plugin (`@manuelvanrijn/opencode-copilot-instructions`) that loads `.github/instructions/*.md` files into the agent system prompt. Files with `applyTo:` frontmatter are injected on-demand when a matching file enters context; files without are always injected.
+An OpenCode / Factory Droid plugin (`@manuelvanrijn/copilot-instructions-plugin`) that loads `.github/instructions/*.md` files into the agent system prompt. Files with `applyTo:` frontmatter are injected on-demand when a matching file enters context; files without are always injected.
 
 Plugin entry point: `src/index.ts`, which exports `{ id, server }` and wires OpenCode hooks.
 

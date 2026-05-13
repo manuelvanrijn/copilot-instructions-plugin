@@ -1,9 +1,10 @@
 /**
- * @manuelvanrijn/opencode-copilot-instructions
+ * @manuelvanrijn/copilot-instructions-plugin
  *
- * OpenCode plugin that reads .github/instructions/*.md files with `applyTo:`
- * frontmatter and injects matching instructions into the system prompt when
- * the agent reads, edits, or writes files matching those globs.
+ * OpenCode / Factory Droid plugin that reads .github/instructions/*.md files
+ * with `applyTo:` frontmatter and injects matching instructions into the
+ * system prompt when the agent reads, edits, or writes files matching those
+ * globs.
  *
  * Files without `applyTo:` frontmatter are always injected, matching GitHub
  * Copilot's behavior for always-active instructions.
@@ -162,6 +163,6 @@ export const CopilotInstructionsPlugin: Plugin = async ({
   }
 }
 
-const id = "opencode-copilot-instructions" as const
+const id = "copilot-instructions-plugin" as const
 const server = CopilotInstructionsPlugin satisfies Plugin
 export default { id, server }

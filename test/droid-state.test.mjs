@@ -20,7 +20,7 @@ test("getCacheDir returns a stable path under home cache", () => {
 
   assert.equal(dir1, dir2)
   assert.notEqual(dir1, dir3)
-  assert.ok(dir1.includes("opencode-copilot-instructions"))
+  assert.ok(dir1.includes("copilot-instructions-plugin"))
 })
 
 test("getStatePath sanitizes session IDs", () => {

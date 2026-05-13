@@ -1,6 +1,12 @@
 {
-  "id": "opencode-copilot-instructions",
-  "name": "Copilot Instructions",
+  "name": "copilot-instructions-plugin",
+  "description": "Loads .github/instructions/ files into Droid context with applyTo: support — like GitHub Copilot custom instructions",
   "version": "0.1.2",
-  "description": "Loads .github/instructions/ files into Droid context with applyTo: support"
+  "author": {
+    "name": "Manuel van Rijn",
+    "email": "manuel@manuelvanrijn.nl"
+  },
+  "homepage": "https://github.com/manuelvanrijn/copilot-instructions-plugin",
+  "repository": "https://github.com/manuelvanrijn/copilot-instructions-plugin",
+  "license": "MIT"
 }

@@ -1,0 +1,20 @@
+{
+  "name": "copilot-instructions-plugin",
+  "description": "Copilot Instructions plugin for Factory Droid and OpenCode",
+  "owner": {
+    "name": "Manuel van Rijn",
+    "email": "manuel@manuelvanrijn.nl"
+  },
+  "plugins": [
+    {
+      "name": "copilot-instructions-plugin",
+      "description": "Loads .github/instructions/ files into Droid context with applyTo: support — like GitHub Copilot custom instructions",
+      "version": "0.1.2",
+      "source": "./",
+      "author": {
+        "name": "Manuel van Rijn",
+        "email": "manuel@manuelvanrijn.nl"
+      }
+    }
+  ]
+}

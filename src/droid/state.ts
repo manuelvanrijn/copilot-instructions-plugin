@@ -20,7 +20,7 @@ export function getCacheDir(projectDir: string): string {
     .update(projectDir)
     .digest("hex")
     .slice(0, 16)
-  return join(homedir(), ".cache", "opencode-copilot-instructions", "droid", hash)
+  return join(homedir(), ".cache", "copilot-instructions-plugin", "droid", hash)
 }
 
 export function getStatePath(cacheDir: string, sessionID: string): string {
