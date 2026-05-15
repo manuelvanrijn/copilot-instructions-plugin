@@ -305,7 +305,7 @@ function cmdStatus(opts) {
     "## Copilot Instructions Status",
     "",
     `### Always-active (no applyTo) — ${always.length} files`,
-    ...always.map((r) => `- ${r.path}`),
+    ...always.map((r) => `- ✓ ${r.path}`),
     "",
     `### Conditional (applyTo) — ${conditional.length} files`,
     ...conditional.map((r) => `- ${r.path} [${r.globs.join(", ")}]`),
@@ -317,13 +317,41 @@ function cmdStatus(opts) {
   } catch {}
 
   if (sessionFiles.length > 0) {
-    lines.push("", `### Active sessions (${sessionFiles.length})`)
+    lines.push("", `### Session details (${sessionFiles.length})`)
+
     for (const f of sessionFiles) {
       try {
         const s = JSON.parse(fs.readFileSync(path.join(stateDir, f), "utf8"))
-        lines.push(
-          `- ${f.replace(".json", "")}: ${s.contextPaths.length} paths, ${s.activeRulePaths.length} active rules`
+        const sessionId = f.replace(".json", "")
+
+        const active = getActiveRules(rules, s.contextPaths)
+        const allActive = [...active.always, ...active.conditional]
+        const activePaths = allActive.map((r) => r.path)
+        const pending = conditional.filter(
+          (r) => !allActive.some((a) => a.path === r.path)
         )
+
+        lines.push("", `#### ${sessionId}`)
+
+        if (s.contextPaths.length > 0) {
+          lines.push("", "Context paths:", ...s.contextPaths.map((p) => `  - ${p}`))
+        }
+
+        if (activePaths.length > 0) {
+          lines.push(
+            "",
+            `Active rules (${activePaths.length}):`,
+            ...activePaths.map((p) => `  - ✓ ${p}`)
+          )
+        }
+
+        if (pending.length > 0) {
+          lines.push(
+            "",
+            `Pending rules (${pending.length}):`,
+            ...pending.map((r) => `  - ○ ${r.path}`)
+          )
+        }
       } catch {}
     }
   } else {

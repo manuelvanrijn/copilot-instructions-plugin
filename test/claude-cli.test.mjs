@@ -232,3 +232,63 @@ test("no instructions dir produces valid empty response", () => {
     rmSync(dir, { recursive: true, force: true })
   }
 })
+
+test("status: lists always and conditional rules when no sessions", () => {
+  const { dir, stateDir, instrDir } = fixtureDir()
+  try {
+    writeFileSync(join(instrDir, "always.md"), "# Always\nAlways.")
+    writeFileSync(
+      join(instrDir, "cond.md"),
+      '---\napplyTo: "src/**"\n---\n# Cond\nCond.'
+    )
+
+    const out = execSync(
+      `node "${ENGINE}" status --project-dir "${dir}" --state-dir "${stateDir}"`,
+      { encoding: "utf8", timeout: 5000 }
+    )
+
+    assert.ok(out.includes("Always-active"))
+    assert.ok(out.includes("always.md"))
+    assert.ok(out.includes("Conditional"))
+    assert.ok(out.includes("cond.md"))
+    assert.ok(out.includes("src/**"))
+    assert.ok(!out.includes("Session details"))
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test("status: shows per-session active/pending rules and context paths", () => {
+  const { dir, stateDir, instrDir } = fixtureDir()
+  try {
+    writeFileSync(join(instrDir, "always.md"), "# Always\nAlways.")
+    writeFileSync(
+      join(instrDir, "frontend.md"),
+      '---\napplyTo: "src/frontend/**"\n---\n# Frontend\nFrontend guide.'
+    )
+    writeFileSync(
+      join(instrDir, "backend.md"),
+      '---\napplyTo: "src/backend/**"\n---\n# Backend\nBackend guide.'
+    )
+
+    run("user-prompt", dir, stateDir, {
+      session_id: "st1",
+      user_prompt: "edit src/frontend/App.tsx",
+    })
+
+    const out = execSync(
+      `node "${ENGINE}" status --project-dir "${dir}" --state-dir "${stateDir}"`,
+      { encoding: "utf8", timeout: 5000 }
+    )
+
+    assert.ok(out.includes("Session details"))
+    assert.ok(out.includes("st1"))
+    assert.ok(out.includes("src/frontend/App.tsx"))
+    assert.ok(out.includes("Active rules"))
+    assert.ok(out.includes("frontend.md"))
+    assert.ok(out.includes("Pending rules"))
+    assert.ok(out.includes("backend.md"))
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
