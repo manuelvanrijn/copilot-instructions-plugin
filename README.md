@@ -15,7 +15,7 @@ This means you can keep your existing `.github/copilot-instructions.md` and `.gi
 ## Installation
 
 ```bash
-opencode plugin @manuelvanrijn/copilot-instructions-plugin@0.1.2 --global
+opencode plugin @manuelvanrijn/copilot-instructions-plugin@0.2.0 --global
 ```
 
 Or add it to your `opencode.json`:
@@ -23,7 +23,7 @@ Or add it to your `opencode.json`:
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["@manuelvanrijn/copilot-instructions-plugin@0.1.2"]
+  "plugin": ["@manuelvanrijn/copilot-instructions-plugin@0.2.0"]
 }
 ```
 

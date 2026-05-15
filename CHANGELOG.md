@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+
+## v0.2.0 — 2026-05-15
+
 ### Changed
 - Package and repository renamed from `@manuelvanrijn/opencode-copilot-instructions` to `@manuelvanrijn/copilot-instructions-plugin`. The old npm package is deprecated; migrate to the new name.
 

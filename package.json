@@ -1,6 +1,6 @@
 {
   "name": "@manuelvanrijn/copilot-instructions-plugin",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "OpenCode plugin that loads .github/instructions/ files with applyTo: frontmatter into the system prompt — like GitHub Copilot instructions",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
