@@ -2,11 +2,15 @@
 
 ## Unreleased
 
+### Added
+- Claude Code plugin variant that lazy-loads `.github/instructions/*.md` via Claude hooks (SessionStart, UserPromptSubmit, PreToolUse, PreCompact), reusing the same instruction source as the existing OpenCode plugin.
 
 ## v0.2.0 — 2026-05-15
 
 ### Changed
 - Package and repository renamed from `@manuelvanrijn/opencode-copilot-instructions` to `@manuelvanrijn/copilot-instructions-plugin`. The old npm package is deprecated; migrate to the new name.
+
+## v0.1.2 — 2026-04-24
 
 ### Added
 - `.github/copilot-instructions.md` is now always loaded if present — this is the repository-level instructions file used by GitHub Copilot.

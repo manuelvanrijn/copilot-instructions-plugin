@@ -2,7 +2,16 @@
 
 [![npm version](https://img.shields.io/npm/v/@manuelvanrijn/copilot-instructions-plugin)](https://www.npmjs.com/package/@manuelvanrijn/copilot-instructions-plugin)
 
-An [OpenCode](https://opencode.ai) plugin that loads `.github/instructions/` files into the AI agent's system prompt — following the same `applyTo:` convention as [GitHub Copilot custom instructions](https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot).
+An [OpenCode](https://opencode.ai) plugin and [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin that loads `.github/instructions/` files into the AI agent's system prompt — following the same `applyTo:` convention as [GitHub Copilot custom instructions](https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot).
+
+## Variants
+
+This repo contains two plugin variants that share the same instruction source (`.github/instructions/*.md`):
+
+| Variant | Target | Entry point |
+|---|---|---|
+| OpenCode plugin | [OpenCode](https://opencode.ai) | `src/index.ts` (npm package) |
+| Claude Code plugin | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `.claude-plugin/` (hook-based) |
 
 ## How it works
 
@@ -102,3 +111,20 @@ The tag push then triggers the GitHub Actions workflow, which:
 ## License
 
 MIT
+
+## Claude Code plugin
+
+The `.claude-plugin/` directory contains a Claude Code plugin variant that uses Claude hooks for the same lazy instruction loading.
+
+### How it works
+
+- **SessionStart** injects always-active rules.
+- **UserPromptSubmit** extracts file paths from prompts and activates matching conditional rules.
+- **PreToolUse** (Read, Write, Edit, Glob, Grep) tracks accessed files and activates matching rules.
+- **PreCompact** preserves context paths across compaction.
+
+All four events re-evaluate rules against accumulated context paths, sending the full active instruction set each time.
+
+### Installation
+
+Add to your Claude Code project `.claude/settings.json` or install via marketplace.
