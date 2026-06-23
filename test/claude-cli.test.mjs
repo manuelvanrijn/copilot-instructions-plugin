@@ -7,14 +7,28 @@ import { tmpdir } from "node:os"
 
 const ENGINE = resolve("hooks/scripts/instructions.cjs")
 
-function run(cmd, projectDir, stateDir, input) {
+function run(cmd, projectDir, stateDir, input, env = {}) {
   const inputFile = join(stateDir, "input.json")
   writeFileSync(inputFile, JSON.stringify(input))
   const result = execSync(
     `node "${ENGINE}" ${cmd} --project-dir "${projectDir}" --state-dir "${stateDir}" --input-file "${inputFile}"`,
-    { encoding: "utf8", timeout: 5000 }
+    { encoding: "utf8", timeout: 5000, env: { ...process.env, ...env } }
   )
   return JSON.parse(result.trim())
+}
+
+function runSessionStart(projectDir, stateDir, input, flags = "", env = {}) {
+  const inputFile = join(stateDir, "input.json")
+  writeFileSync(inputFile, JSON.stringify(input))
+  const result = execSync(
+    `node "${ENGINE}" session-start --project-dir "${projectDir}" --state-dir "${stateDir}" --input-file "${inputFile}" ${flags}`,
+    { encoding: "utf8", timeout: 5000, env: { ...process.env, ...env } }
+  )
+  return JSON.parse(result.trim())
+}
+
+function context(out) {
+  return out.hookSpecificOutput?.additionalContext || ""
 }
 
 function fixtureDir() {
@@ -36,9 +50,10 @@ test("session-start: injects always rules only", () => {
     )
 
     const out = run("session-start", dir, stateDir, { session_id: "ss1" })
-    assert.ok(out.systemMessage.includes("Always rule content"))
-    assert.ok(out.systemMessage.includes('type="always"'))
-    assert.ok(!out.systemMessage.includes("Cond rule content"))
+    assert.equal(out.hookSpecificOutput.hookEventName, "SessionStart")
+    assert.ok(context(out).includes("Always rule content"))
+    assert.ok(context(out).includes('type="always"'))
+    assert.ok(!context(out).includes("Cond rule content"))
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -58,10 +73,31 @@ test("user-prompt: extracts paths and matches conditional rules", () => {
       user_prompt: "edit src/index.ts",
     })
 
-    assert.ok(out.systemMessage.includes("Always."))
-    assert.ok(out.systemMessage.includes("Cond."))
-    assert.ok(out.systemMessage.includes('type="always"'))
-    assert.ok(out.systemMessage.includes('type="conditional"'))
+    assert.equal(out.hookSpecificOutput.hookEventName, "UserPromptSubmit")
+    assert.ok(context(out).includes("Always."))
+    assert.ok(context(out).includes("Cond."))
+    assert.ok(context(out).includes('type="always"'))
+    assert.ok(context(out).includes('type="conditional"'))
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test("user-prompt: reads Claude Code prompt field", () => {
+  const { dir, stateDir, instrDir } = fixtureDir()
+  try {
+    writeFileSync(
+      join(instrDir, "cond.md"),
+      '---\napplyTo: "apps/backend/**"\n---\n# Backend\nBackend rule.'
+    )
+
+    const out = run("user-prompt", dir, stateDir, {
+      session_id: "up-prompt",
+      prompt: "read apps/backend/app/controllers/v1/users_controller.rb",
+    })
+
+    assert.equal(out.hookSpecificOutput.hookEventName, "UserPromptSubmit")
+    assert.ok(context(out).includes("Backend rule."))
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -81,8 +117,8 @@ test("user-prompt: non-matching path activates only always rules", () => {
       user_prompt: "edit app/models/user.rb",
     })
 
-    assert.ok(out.systemMessage.includes("Always."))
-    assert.ok(!out.systemMessage.includes("Cond."))
+    assert.ok(context(out).includes("Always."))
+    assert.ok(!context(out).includes("Cond."))
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -103,8 +139,9 @@ test("pre-tool: tracks Read paths and injects matching rules", () => {
       tool_input: { file_path: "src/index.ts" },
     })
 
-    assert.ok(out.systemMessage.includes("Always."))
-    assert.ok(out.systemMessage.includes("Cond."))
+    assert.equal(out.hookSpecificOutput.hookEventName, "PreToolUse")
+    assert.ok(context(out).includes("Always."))
+    assert.ok(context(out).includes("Cond."))
   } finally {
     rmSync(dir, { recursive: true, force: true }
     )
@@ -122,7 +159,7 @@ test("pre-tool: ignores non-tracked tools", () => {
       tool_input: { command: "ls" },
     })
 
-    assert.ok(!out.systemMessage)
+    assert.ok(!out.hookSpecificOutput)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -141,7 +178,7 @@ test("pre-tool: directory path activates directory-scoped rule", () => {
       tool_input: { path: "app/models" },
     })
 
-    assert.ok(out.systemMessage && out.systemMessage.includes("Model instructions"))
+    assert.ok(context(out).includes("Model instructions"))
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -163,8 +200,79 @@ test("pre-compact: preserves context paths", () => {
       session_id: "pc1",
     })
 
-    assert.ok(out.systemMessage.includes("Copilot Instructions context paths"))
-    assert.ok(out.systemMessage.includes("src/index.ts"))
+    assert.ok(!out.hookSpecificOutput)
+
+    const stateFile = join(stateDir, "pc1.json")
+    const state = JSON.parse(readFileSync(stateFile, "utf8"))
+    assert.ok(state.contextPaths.includes("src/index.ts"))
+    assert.deepEqual(state.injectedRulePaths, [])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test("session-start resume re-injects active rules after compaction", () => {
+  const { dir, stateDir, instrDir } = fixtureDir()
+  try {
+    writeFileSync(join(instrDir, "cond.md"),
+      '---\napplyTo: "src/**"\n---\n# Cond\nCond.'
+    )
+
+    run("user-prompt", dir, stateDir, {
+      session_id: "pc2",
+      prompt: "edit src/index.ts",
+    })
+
+    run("pre-compact", dir, stateDir, {
+      session_id: "pc2",
+    })
+
+    const parsed = runSessionStart(dir, stateDir, { session_id: "pc2" }, "--resume")
+    assert.equal(parsed.hookSpecificOutput.hookEventName, "SessionStart")
+    assert.ok(context(parsed).includes("Cond."))
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test("session-start resume re-injects active rules after Claude host restarts", () => {
+  const { dir, stateDir, instrDir } = fixtureDir()
+  try {
+    writeFileSync(join(instrDir, "cond.md"),
+      '---\napplyTo: "apps/backend/app/controllers/**"\n---\n# Controllers\nPrefix rule.'
+    )
+
+    runSessionStart(
+      dir,
+      stateDir,
+      { session_id: "resume1" },
+      "",
+      { COPILOT_INSTRUCTIONS_HOST_PROCESS_ID: "old-host" }
+    )
+
+    run("user-prompt", dir, stateDir, {
+      session_id: "resume1",
+      prompt: "read apps/backend/app/controllers/v1/users_controller.rb",
+    }, { COPILOT_INSTRUCTIONS_HOST_PROCESS_ID: "old-host" })
+
+    const sameHost = runSessionStart(
+      dir,
+      stateDir,
+      { session_id: "resume1" },
+      "--resume",
+      { COPILOT_INSTRUCTIONS_HOST_PROCESS_ID: "old-host" }
+    )
+    assert.ok(!sameHost.hookSpecificOutput)
+
+    const newHost = runSessionStart(
+      dir,
+      stateDir,
+      { session_id: "resume1" },
+      "--resume",
+      { COPILOT_INSTRUCTIONS_HOST_PROCESS_ID: "new-host" }
+    )
+    assert.equal(newHost.hookSpecificOutput.hookEventName, "SessionStart")
+    assert.ok(context(newHost).includes("Prefix rule."))
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -179,14 +287,14 @@ test("state persists across hook invocations", () => {
 
     // Step 1: SessionStart — no conditional
     const sOut = run("session-start", dir, stateDir, { session_id: "persist1" })
-    assert.ok(!sOut.systemMessage)
+    assert.ok(!sOut.hookSpecificOutput)
 
     // Step 2: UserPrompt with path — conditionals activate
     const upOut = run("user-prompt", dir, stateDir, {
       session_id: "persist1",
       user_prompt: "edit src/index.ts",
     })
-    assert.ok(upOut.systemMessage.includes("Cond."))
+    assert.ok(context(upOut).includes("Cond."))
 
     // Step 3: State file exists with accumulated paths
     const stateFile = join(stateDir, "persist1.json")
@@ -227,7 +335,7 @@ test("no instructions dir produces valid empty response", () => {
   try {
     const out = run("session-start", dir, stateDir, { session_id: "empty1" })
     assert.equal(out.continue, true)
-    assert.ok(!out.systemMessage)
+    assert.ok(!out.hookSpecificOutput)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -281,13 +389,47 @@ test("status: shows per-session active/pending rules and context paths", () => {
       { encoding: "utf8", timeout: 5000 }
     )
 
-    assert.ok(out.includes("Session details"))
-    assert.ok(out.includes("st1"))
+    assert.ok(out.includes("Current session"))
+    assert.ok(out.includes("st1 (current)"))
     assert.ok(out.includes("src/frontend/App.tsx"))
     assert.ok(out.includes("Active rules"))
     assert.ok(out.includes("frontend.md"))
     assert.ok(out.includes("Pending rules"))
     assert.ok(out.includes("backend.md"))
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test("status: marks newest updated session as current", () => {
+  const { dir, stateDir, instrDir } = fixtureDir()
+  try {
+    writeFileSync(join(instrDir, "always.md"), "# Always\nAlways.")
+    writeFileSync(
+      join(instrDir, "frontend.md"),
+      '---\napplyTo: "src/frontend/**"\n---\n# Frontend\nFrontend guide.'
+    )
+    writeFileSync(
+      join(instrDir, "backend.md"),
+      '---\napplyTo: "src/backend/**"\n---\n# Backend\nBackend guide.'
+    )
+
+    run("user-prompt", dir, stateDir, {
+      session_id: "old-session",
+      user_prompt: "edit src/frontend/App.tsx",
+    })
+    run("user-prompt", dir, stateDir, {
+      session_id: "new-session",
+      user_prompt: "edit src/backend/User.rb",
+    })
+
+    const out = execSync(
+      `node "${ENGINE}" status --project-dir "${dir}" --state-dir "${stateDir}"`,
+      { encoding: "utf8", timeout: 5000 }
+    )
+
+    assert.ok(!out.includes("old-session"))
+    assert.ok(out.includes("new-session (current)"))
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

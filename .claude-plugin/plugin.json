@@ -1,12 +1,18 @@
 {
   "name": "copilot-instructions",
-  "version": "0.1.0",
-  "description": "Lazy-load .github/instructions/*.md files as project context, activating conditional rules when matching files are accessed.",
+  "displayName": "Copilot Instructions",
+  "version": "0.2.0",
+  "description": "Load GitHub Copilot instruction files into Claude Code context.",
   "author": {
     "name": "Manuel van Rijn",
     "email": "manuel@manuelvanrijn.nl"
   },
   "license": "MIT",
-  "repository": "https://github.com/manuelvanrijn/copilot-instructions-plugin",
-  "hooks": "./hooks/hooks.json"
+  "keywords": [
+    "copilot",
+    "instructions",
+    "github-copilot",
+    "claude-code"
+  ],
+  "repository": "https://github.com/manuelvanrijn/copilot-instructions-plugin"
 }

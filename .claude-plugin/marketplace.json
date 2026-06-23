@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "copilot-instructions",
+  "description": "Claude Code marketplace for Copilot Instructions",
+  "owner": {
+    "name": "Manuel van Rijn",
+    "url": "https://github.com/manuelvanrijn"
+  },
+  "plugins": [
+    {
+      "name": "copilot-instructions",
+      "description": "Load GitHub Copilot instruction files into Claude Code context.",
+      "version": "0.2.0",
+      "source": "./",
+      "author": {
+        "name": "Manuel van Rijn",
+        "email": "manuel@manuelvanrijn.nl"
+      },
+      "category": "productivity"
+    }
+  ]
+}

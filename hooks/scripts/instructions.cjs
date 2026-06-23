@@ -4,7 +4,7 @@
  * Claude Code plugin: copilot-instructions
  *
  * Core engine that loads .github/instructions/*.md files and lazily injects
- * matching instructions via Claude hook systemMessage output.
+ * matching instructions via Claude hook additionalContext output.
  *
  * Mirrors the OpenCode plugin logic in src/index.ts.
  */
@@ -86,15 +86,25 @@ function extractPathsFromText(text) {
 }
 
 function loadRules(projectDir) {
+  const rules = []
+
+  const copilotPath = path.join(projectDir, ".github", "copilot-instructions.md")
+  try {
+    const raw = fs.readFileSync(copilotPath, "utf8")
+    const content = raw.replace(FRONTMATTER_RE, "").trim()
+    if (content) rules.push({ globs: null, content, path: "copilot-instructions.md", fullPath: copilotPath })
+  } catch {
+    // file doesn't exist, skip
+  }
+
   const instructionsDir = path.join(projectDir, ".github", "instructions")
   let files
   try {
-    files = fs.readdirSync(instructionsDir)
+    files = fs.readdirSync(instructionsDir).sort()
   } catch {
-    return []
+    return rules
   }
 
-  const rules = []
   for (const file of files) {
     if (!file.endsWith(".md") || file.startsWith(".")) continue
 
@@ -103,7 +113,7 @@ function loadRules(projectDir) {
     const globs = parseApplyTo(raw)
     const content = raw.replace(FRONTMATTER_RE, "").trim()
 
-    rules.push({ globs: globs.length === 0 ? null : globs, content, path: file })
+    rules.push({ globs: globs.length === 0 ? null : globs, content, path: file, fullPath: filePath })
   }
   return rules
 }
@@ -137,10 +147,24 @@ function initState(sessionId, projectDir) {
   return {
     sessionId,
     projectDir,
+    hostProcessId: null,
     contextPaths: [],
     activeRulePaths: [],
+    injectedRulePaths: [],
     rulesChecksum: "",
   }
+}
+
+function currentHostProcessId() {
+  return process.env.COPILOT_INSTRUCTIONS_HOST_PROCESS_ID || String(process.ppid)
+}
+
+function resetInjectionAfterHostRestart(state) {
+  const hostProcessId = currentHostProcessId()
+  if (state.hostProcessId && state.hostProcessId !== hostProcessId) {
+    state.injectedRulePaths = []
+  }
+  state.hostProcessId = hostProcessId
 }
 
 function addPath(state, p, projectDir) {
@@ -181,21 +205,37 @@ function getActiveRules(rules, contextPaths) {
 }
 
 function wrap(contents, label) {
-  return `<project_instructions type="${label}">\nThe following project-specific instructions MUST be followed. Apply them immediately and for all subsequent actions.\n\n${contents.join("\n\n---\n\n")}\n</project_instructions>`
+  return `<project_instructions type="${label}">\nTrusted project instructions loaded from this repository. Apply them when working in their matching files.\n\n${contents.join("\n\n---\n\n")}\n</project_instructions>`
 }
 
-function buildSystemMessage(active) {
+// Injects content of rules not yet seen this session into Claude context, and updates state.
+function injectNewRules(rules, state) {
+  const active = getActiveRules(rules, state.contextPaths)
+  const allActive = [...active.always, ...active.conditional]
+  const injected = new Set(state.injectedRulePaths || [])
+
+  const newAlways = active.always.filter((r) => !injected.has(r.path))
+  const newConditional = active.conditional.filter((r) => !injected.has(r.path))
+  const newRules = [...newAlways, ...newConditional]
+
+  state.activeRulePaths = allActive.map((r) => r.path)
+  if (newRules.length > 0) {
+    state.injectedRulePaths = [...injected, ...newRules.map((r) => r.path)]
+  }
+
+  if (newRules.length === 0) return null
+
   const parts = []
-  if (active.always.length > 0)
-    parts.push(wrap(active.always.map((r) => r.content), "always"))
-  if (active.conditional.length > 0)
-    parts.push(wrap(active.conditional.map((r) => r.content), "conditional"))
-  return parts.length > 0 ? parts.join("\n\n") : null
+  if (newAlways.length > 0) parts.push(wrap(newAlways.map((r) => r.content), "always"))
+  if (newConditional.length > 0) parts.push(wrap(newConditional.map((r) => r.content), "conditional"))
+  return parts.join("\n\n")
 }
 
-function ok(systemMessage) {
+function ok(hookEventName, additionalContext) {
   const out = { continue: true }
-  if (systemMessage) out.systemMessage = systemMessage
+  if (additionalContext) {
+    out.hookSpecificOutput = { hookEventName, additionalContext }
+  }
   process.stdout.write(JSON.stringify(out))
 }
 
@@ -204,24 +244,29 @@ function readInput(inputFile) {
 }
 
 function cmdSessionStart(opts) {
-  const { projectDir, stateDir, inputFile } = opts
+  const { projectDir, stateDir, inputFile, resume } = opts
   const input = readInput(inputFile)
   const sessionId = input.session_id || "default"
   const rules = loadRules(projectDir)
-  const state = initState(sessionId, projectDir)
 
-  const active = getActiveRules(rules, state.contextPaths)
+  // On resume/compact: restore accumulated paths + injected set. On startup/clear: fresh state.
+  const state = resume
+    ? (readState(stateDir, sessionId) || initState(sessionId, projectDir))
+    : initState(sessionId, projectDir)
+  resetInjectionAfterHostRestart(state)
+
+  const additionalContext = injectNewRules(rules, state)
   state.rulesChecksum = String(rules.length)
   writeState(stateDir, sessionId, state, inputFile)
 
-  ok(buildSystemMessage(active))
+  ok("SessionStart", additionalContext)
 }
 
 function cmdUserPrompt(opts) {
   const { projectDir, stateDir, inputFile } = opts
   const input = readInput(inputFile)
   const sessionId = input.session_id || "default"
-  const promptText = input.user_prompt || ""
+  const promptText = input.prompt || input.user_prompt || ""
   const rules = loadRules(projectDir)
 
   let state = readState(stateDir, sessionId)
@@ -231,13 +276,10 @@ function cmdUserPrompt(opts) {
     addPath(state, fp, projectDir)
   }
 
-  const active = getActiveRules(rules, state.contextPaths)
-  state.activeRulePaths = [...active.always, ...active.conditional].map(
-    (r) => r.path
-  )
+  const additionalContext = injectNewRules(rules, state)
   writeState(stateDir, sessionId, state, inputFile)
 
-  ok(buildSystemMessage(active))
+  ok("UserPromptSubmit", additionalContext)
 }
 
 function cmdPreTool(opts) {
@@ -248,7 +290,7 @@ function cmdPreTool(opts) {
   const rules = loadRules(projectDir)
 
   if (!TOOLS.includes(toolName)) {
-    ok(null)
+    ok("PreToolUse", null)
     return
   }
 
@@ -261,13 +303,10 @@ function cmdPreTool(opts) {
     addPath(state, fp, projectDir)
   }
 
-  const active = getActiveRules(rules, state.contextPaths)
-  state.activeRulePaths = [...active.always, ...active.conditional].map(
-    (r) => r.path
-  )
+  const additionalContext = injectNewRules(rules, state)
   writeState(stateDir, sessionId, state, inputFile)
 
-  ok(buildSystemMessage(active))
+  ok("PreToolUse", additionalContext)
 }
 
 function cmdPreCompact(opts) {
@@ -277,21 +316,15 @@ function cmdPreCompact(opts) {
 
   const state = readState(stateDir, sessionId)
   if (!state || state.contextPaths.length === 0) {
-    ok(null)
+    ok("PreCompact", null)
     return
   }
 
-  const sanitize = (p) => p.replace(/[\r\n\t]/g, " ").slice(0, 300)
-  const paths = [...state.contextPaths].sort().slice(0, 20)
-  const extra = state.contextPaths.length - paths.length
+  // Reset injected set so all active rules are re-injected after compaction.
+  state.injectedRulePaths = []
+  writeState(stateDir, sessionId, state, inputFile)
 
-  ok(
-    [
-      "Copilot Instructions context paths:",
-      ...paths.map((p) => `  - ${sanitize(p)}`),
-      ...(extra > 0 ? [`  ... and ${extra} more paths`] : []),
-    ].join("\n")
-  )
+  ok("PreCompact", null)
 }
 
 function cmdStatus(opts) {
@@ -317,45 +350,56 @@ function cmdStatus(opts) {
   } catch {}
 
   if (sessionFiles.length > 0) {
-    lines.push("", `### Session details (${sessionFiles.length})`)
+    const sessions = []
 
     for (const f of sessionFiles) {
       try {
         const s = JSON.parse(fs.readFileSync(path.join(stateDir, f), "utf8"))
         const sessionId = f.replace(".json", "")
-
-        const active = getActiveRules(rules, s.contextPaths)
-        const allActive = [...active.always, ...active.conditional]
-        const activePaths = allActive.map((r) => r.path)
-        const pending = conditional.filter(
-          (r) => !allActive.some((a) => a.path === r.path)
-        )
-
-        lines.push("", `#### ${sessionId}`)
-
-        if (s.contextPaths.length > 0) {
-          lines.push("", "Context paths:", ...s.contextPaths.map((p) => `  - ${p}`))
-        }
-
-        if (activePaths.length > 0) {
-          lines.push(
-            "",
-            `Active rules (${activePaths.length}):`,
-            ...activePaths.map((p) => `  - ✓ ${p}`)
-          )
-        }
-
-        if (pending.length > 0) {
-          lines.push(
-            "",
-            `Pending rules (${pending.length}):`,
-            ...pending.map((r) => `  - ○ ${r.path}`)
-          )
-        }
+        sessions.push({ sessionId, state: s })
       } catch {}
     }
+
+    const currentSessionId = sessions
+      .filter((s) => s.state.lastUpdatedAt)
+      .sort((a, b) => String(b.state.lastUpdatedAt).localeCompare(String(a.state.lastUpdatedAt)))[0]
+      ?.sessionId
+
+    const current = sessions
+      .filter((s) => s.state.lastUpdatedAt)
+      .sort((a, b) => String(b.state.lastUpdatedAt).localeCompare(String(a.state.lastUpdatedAt)))[0]
+
+    if (current) {
+      const s = current.state
+      const active = getActiveRules(rules, s.contextPaths)
+      const allActive = [...active.always, ...active.conditional]
+      const activePaths = allActive.map((r) => r.path)
+      const pending = conditional.filter((r) => !allActive.some((a) => a.path === r.path))
+
+      lines.push("", `### Current session`, "", `#### ${current.sessionId} (current)`)
+
+      if (s.contextPaths.length > 0) {
+        lines.push("", "Context paths:", ...s.contextPaths.map((p) => `  - ${p}`))
+      }
+
+      if (activePaths.length > 0) {
+        lines.push(
+          "",
+          `Active rules (${activePaths.length}):`,
+          ...activePaths.map((p) => `  - ✓ ${p}`)
+        )
+      }
+
+      if (pending.length > 0) {
+        lines.push(
+          "",
+          `Pending rules (${pending.length}):`,
+          ...pending.map((r) => `  - ○ ${r.path}`)
+        )
+      }
+    }
   } else {
-    lines.push("", "_No active sessions_")
+    lines.push("", "_No active session_")
   }
 
   process.stdout.write(lines.join("\n"))
@@ -364,12 +408,17 @@ function cmdStatus(opts) {
 if (require.main === module) {
   const cmd = process.argv[2]
   const opts = (() => {
+    const BOOLEAN_FLAGS = new Set(["resume", "fresh"])
     const o = {}
     for (let i = 3; i < process.argv.length; i++) {
       if (process.argv[i].startsWith("--")) {
         const k = process.argv[i].slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase())
-        o[k] = process.argv[i + 1] || ""
-        i++
+        if (BOOLEAN_FLAGS.has(k)) {
+          o[k] = true
+        } else {
+          o[k] = process.argv[i + 1] || ""
+          i++
+        }
       }
     }
     return o
@@ -393,10 +442,10 @@ if (require.main === module) {
         cmdStatus(opts)
         break
       default:
-        ok(null)
+        ok("Unknown", null)
     }
   } catch (err) {
-    ok(null)
+    ok("Error", null)
   }
 }
 

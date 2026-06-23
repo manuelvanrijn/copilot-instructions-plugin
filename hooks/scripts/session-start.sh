@@ -2,10 +2,12 @@
 set -euo pipefail
 tmp=$(mktemp)
 cat > "$tmp"
+STATE_DIR="${CLAUDE_PLUGIN_DATA:-${CLAUDE_PLUGIN_ROOT}/hooks/state}"
 node "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/instructions.cjs" session-start \
   --project-dir "$CLAUDE_PROJECT_DIR" \
-  --state-dir "${CLAUDE_PLUGIN_ROOT}/hooks/state" \
-  --input-file "$tmp"
+  --state-dir "$STATE_DIR" \
+  --input-file "$tmp" \
+  "$@"
 exit_code=$?
 rm -f "$tmp"
 exit $exit_code

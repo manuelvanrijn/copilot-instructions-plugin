@@ -5,6 +5,15 @@
 ### Added
 - Claude Code plugin variant that lazy-loads `.github/instructions/*.md` via Claude hooks (SessionStart, UserPromptSubmit, PreToolUse, PreCompact), reusing the same instruction source as the existing OpenCode plugin.
 
+### Fixed
+- Claude Code hooks now inject rules through `additionalContext` instead of `systemMessage`, and read the documented `prompt` field for `UserPromptSubmit` path matching.
+- Claude Code session state now uses the persistent plugin data directory instead of the plugin cache copy.
+- Claude Code resumed sessions now re-send active instructions after the Claude host process changes, while still avoiding duplicate injections inside the same process.
+
+### Changed
+- Claude Code marketplace naming now uses `copilot-instructions@copilot-instructions`, matching Claude plugin conventions instead of the npm-style `copilot-instructions-plugin` suffix.
+- Claude Code exposes the status helper as `/list-copilot-instructions` through a skill instead of the namespaced plugin command.
+
 ## v0.2.0 — 2026-05-15
 
 ### Changed

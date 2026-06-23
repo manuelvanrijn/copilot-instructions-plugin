@@ -118,13 +118,30 @@ The `.claude-plugin/` directory contains a Claude Code plugin variant that uses 
 
 ### How it works
 
-- **SessionStart** injects always-active rules.
+- **SessionStart** adds always-active rules to Claude context.
 - **UserPromptSubmit** extracts file paths from prompts and activates matching conditional rules.
 - **PreToolUse** (Read, Write, Edit, Glob, Grep) tracks accessed files and activates matching rules.
 - **PreCompact** preserves context paths across compaction.
 
-All four events re-evaluate rules against accumulated context paths, sending the full active instruction set each time.
+Rules are delivered through Claude Code hook `additionalContext`, not `systemMessage`, so Claude receives them as hidden context instead of a user-facing warning. Current-session state is stored under Claude's persistent plugin data directory. When Claude resumes, active rules are re-sent because hook context is process-local even when the session id is reused.
 
 ### Installation
 
-Add to your Claude Code project `.claude/settings.json` or install via marketplace.
+For local development, register this checkout as a Claude Code marketplace and install the plugin:
+
+```bash
+claude plugin marketplace add /path/to/copilot-instructions-plugin
+claude plugin install copilot-instructions@copilot-instructions --scope user
+```
+
+In Claude Code, the status helper is available as:
+
+```text
+/list-copilot-instructions
+```
+
+If you previously installed the early development marketplace name, remove it before reinstalling:
+
+```bash
+claude plugin uninstall copilot-instructions@copilot-instructions-plugin --scope user
+```
