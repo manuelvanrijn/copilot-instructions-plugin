@@ -27,6 +27,12 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Install Claude Code
+        if: matrix.node-version == '20'
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Validate Claude plugin
         if: matrix.node-version == '20'
         run: claude plugin validate . --strict
