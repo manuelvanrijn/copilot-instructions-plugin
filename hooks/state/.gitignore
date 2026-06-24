@@ -1,0 +1,4 @@
+
+# Claude plugin runtime state
+hooks/state/*.json
+!hooks/state/.gitkeep

@@ -2,6 +2,9 @@
 node_modules/
 bun.lock
 
+# Runtime state
+hooks/state/*.json
+
 # Build outputs
 dist/
 *.tsbuildinfo
@@ -23,3 +26,4 @@ yarn-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+.opencode/

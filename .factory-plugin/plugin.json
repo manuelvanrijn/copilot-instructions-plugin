@@ -1,0 +1,13 @@
+{
+  "name": "copilot-instructions",
+  "description": "Lazy-load .github/instructions/*.md files as project context, activating conditional rules when matching files are accessed.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Manuel van Rijn",
+    "email": "manuel@manuelvanrijn.nl"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/manuelvanrijn/copilot-instructions-plugin",
+  "hooks": "./hooks/hooks.json",
+  "commands": "./commands"
+}

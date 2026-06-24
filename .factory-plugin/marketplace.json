@@ -1,0 +1,11 @@
+{
+  "name": "copilot-instructions-marketplace",
+  "description": "Lazy-load .github/instructions/*.md files into AI agent context",
+  "plugins": [
+    {
+      "name": "copilot-instructions",
+      "description": "Lazy-load .github/instructions/*.md files as project context",
+      "source": "."
+    }
+  ]
+}
