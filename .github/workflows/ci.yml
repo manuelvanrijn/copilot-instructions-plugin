@@ -26,3 +26,7 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Validate Claude plugin
+        if: matrix.node-version == '20'
+        run: claude plugin validate . --strict

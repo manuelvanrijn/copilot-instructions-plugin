@@ -145,3 +145,16 @@ If you previously installed the early development marketplace name, remove it be
 ```bash
 claude plugin uninstall copilot-instructions@copilot-instructions-plugin --scope user
 ```
+
+### Publishing
+
+This repo can act as the Claude marketplace source directly.
+
+Add it to Claude Code with:
+
+```bash
+claude plugin marketplace add manuelvanrijn/copilot-instructions-plugin
+claude plugin install copilot-instructions@copilot-instructions
+```
+
+For a public Claude marketplace listing, submit this repository through Anthropic's plugin submission flow after the repo is live.

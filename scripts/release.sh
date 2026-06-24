@@ -60,8 +60,11 @@ rm "$TMP"
 # Update version references in README.md
 sed -i '' "s/@manuelvanrijn\/copilot-instructions-plugin@${CURRENT}/@manuelvanrijn\/copilot-instructions-plugin@${NEW}/g" README.md
 
+# Keep Claude marketplace/package versions in sync with npm package version.
+node -e "for (const file of ['.claude-plugin/plugin.json', '.claude-plugin/marketplace.json']) { const fs = require('fs'); const data = JSON.parse(fs.readFileSync(file, 'utf8')); if (file.endsWith('plugin.json')) data.version = process.argv[1]; else data.plugins[0].version = process.argv[1]; fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n'); }" "$NEW"
+
 # Commit, tag, push
-git add package.json "$CHANGELOG" README.md
+git add package.json "$CHANGELOG" README.md .claude-plugin/plugin.json .claude-plugin/marketplace.json
 git commit -m "chore: release v${NEW}"
 git tag "v${NEW}"
 git push origin main
