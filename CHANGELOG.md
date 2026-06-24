@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+
+## v0.2.1 — 2026-06-24
+
 ### Added
 - Claude Code plugin variant that lazy-loads `.github/instructions/*.md` via Claude hooks (SessionStart, UserPromptSubmit, PreToolUse, PreCompact), reusing the same instruction source as the existing OpenCode plugin.
 

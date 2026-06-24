@@ -10,7 +10,7 @@
     {
       "name": "copilot-instructions",
       "description": "Load GitHub Copilot instruction files into Claude Code context.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "./",
       "author": {
         "name": "Manuel van Rijn",
